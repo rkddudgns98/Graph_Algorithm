@@ -13,6 +13,44 @@ char int2name(int i)
 	return i + 'A';
 }
 
+//DFS
+int check[MAX_NODE] = { 0, };
+int stack[MAX_NODE] = { 0, };
+int top = -1;
+
+//Stack
+int Push(int t)
+{
+	if (top >= MAX_NODE - 1)
+	{
+		printf("Stack overflow\n");
+		return -1;
+	}
+
+	stack[++top] = t;
+	return t;
+}
+
+int Pop()
+{
+	if (top < 0)
+	{
+		printf("Stack underflow\m");
+		return -1;
+	}
+
+	return stack[top--];
+}
+
+void Init_Stack()
+{
+	top = -1;
+}
+
+int Stack_Empty()
+{
+	return (top < 0);
+}
 
 //adjmatrix
 int GM[MAX_NODE][MAX_NODE];
@@ -75,6 +113,7 @@ typedef struct Node {
 	struct Node* next;
 }Node;
 
+//Node
 Node* GL[MAX_NODE];
 
 void input_adjlist(Node* a[], int* V, int* E)
@@ -132,6 +171,65 @@ void print_adjlist(Node* a[], int V)
 	}
 }
 
+//recursive version DFS
+void DFS_recur_list(Node* a[], int V, int i)
+{
+	Node* t;
+	check[i] = 1;
+	printf("%3c", int2name(i));
+	for (t = a[i]; t != NULL; t = t->next)
+	{
+		if (check[t->vertex] == 0)
+			DFS_recur_list(a, V, t->vertex);
+	}
+}
+
+void DFS_adjlist(Node* a[], int V)
+{
+	int i;
+	for (i = 0; i < V; i++)
+		check[i] = 0;
+	for (i = 0; i < V; i++)
+	{
+		if (check[i] == 0)
+			DFS_recur_list(a, V, i);
+	}
+}
+
+//non-recursive version DFS
+void nrDFS_adjlist(Node* a[], int V)
+{
+	Init_Stack();	//top = -1;
+	for (int i = 0; i < V; i++)	//check 초기화
+		check[i] = 0;
+
+	for (int i = 0; i < V; i++)
+	{
+		if (check[i] == 0)	//방문안했을때
+		{
+			Node* t;
+			Push(i);	//push
+			check[i] = 1;	//방문했음
+			while (!Stack_Empty())	//스택이 빌때까지
+			{
+				i = Pop();	//팝하고,
+				printf("%3c", int2name(i));	//그 값을 출력
+
+				//pop한 값의 연결된 노드들을 모두 push
+				for (t = a[i]; t != NULL; t = t->next)
+				{
+					//이미 방문했다면, push하지 않는다.
+					if (check[t->vertex] == 0)
+					{
+						Push(t->vertex);
+						check[t->vertex] = 1;
+					}
+				}
+			}
+		}
+	}
+	printf("\n");
+}
 
 
 int main()
@@ -148,6 +246,11 @@ int main()
 	print_adjlist(GL, V);
 
 	//17 18 AB AC AD BE CF DH EF FH EG GI HI JK JL MN MO NP NQ OQ
+	
+	//traversse the given graph
+	//DFS_adjlist(GL, V);
+	nrDFS_adjlist(GL, V);
+
 
 	return 0;
 }
