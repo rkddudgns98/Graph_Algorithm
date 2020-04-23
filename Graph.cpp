@@ -3,6 +3,9 @@
 #pragma warning(disable: 4996)
 
 #define MAX_NODE 100
+#define MAX_EDGE 100
+#define ONLY_FIND 0
+#define UNION 1
 #define UNSEEN (-INT_MAX)
 
 int name2int(char c)
@@ -32,6 +35,9 @@ int nheap = 0;
 int heap[MAX_NODE] = { 0, };
 int weighted[MAX_NODE] = { 0, };
 int parent[MAX_NODE] = { 0, };
+
+//Kruskal
+int cost = 0;
 
 
 //------------------------Stack-----------------------------
@@ -435,9 +441,9 @@ void PFS_adjlist(Node* g[], int V)
 			while (!pq_empty())	//힙에 데이터가 존재할때
 			{
 				print_heap(heap);	//heap출력(index:weighted)
-				printf(" --> %c", int2name(heap[1]));
 				i = pq_extract(heap);	//추출 = 나무정점
 				weighted[i] = -weighted[i];	//양수로 바꿔줌
+				printf(" --> %c", int2name(i));
 
 				for (t = g[i]; t != NULL; t = t->next)
 				{
@@ -480,32 +486,164 @@ void print_cost(int w[],int V)
 	printf("\'%d'\n", cost);
 }
 
+
+//---------------------Kruskal--------------------------------
+typedef struct _Edge{
+	int v1, v2; 
+	int weight;
+}Edge;
+
+Edge edge[MAX_EDGE];
+
+void upKheap(int h[], int k)
+{
+	int v; //index
+	v = h[k];
+
+	while (edge[h[k / 2]].weight > edge[v].weight && k / 2 > 0)
+	{
+		h[k] = h[k / 2];
+		k /= 2;
+	}
+
+	h[k] = v;
+}
+
+void downKheap(int h[], int k)
+{
+	int i, v;	//v=index
+	v = h[k];
+
+	while (k <= nheap / 2)
+	{
+		i = k << 1;
+
+		if (i < nheap && edge[h[i]].weight >= edge[h[i + 1]].weight)
+			i++;
+		if (edge[v].weight < edge[h[i]].weight)
+			break;
+		h[k] = h[i];
+		k = i;
+
+	}
+
+	h[k] = v;
+}
+
+int pq_Kextract(int h[])
+{
+	int v = h[1];	//v에 heap queue의 첫 index 추출
+
+	h[1] = h[nheap--];	//마지막항목을 첫 index로
+	downKheap(h, 1);	//정렬
+
+	return v;
+}
+
+//input edge ( v1,v2,weight)
+void input_edge(Edge e[], int* V, int* E)
+{
+	char vertex[3];
+	int i, j, w;
+
+	printf("\nInput number of nodes and edges\n"); 
+	printf("Input two nodes consisting of edge and its weight");
+	fscanf(fp, "%d %d", V, E);
+	for (j = 0; j < *E; j++)
+	{
+		fscanf(fp, "%s %d", vertex, &w);
+		vertex[2] = NULL;
+		e[j].v1 = name2int(vertex[0]);
+		e[j].v2 = name2int(vertex[1]);
+		e[j].weight = w;
+	}
+}
+
+//부모노드 -1로 초기화
+void find_init(int elem)
+{ 
+	int i;
+	for (i = 0; i < elem; i++) 
+		parent[i] = -1; 
+}
+
+void union_set(int elem, int asso)
+{	//asso is elem's parent
+	parent[elem] = asso;
+}
+
+int find_set(int elem, int asso, int flag)
+{	//elem = 자식, asso = 부모
+	int i = elem, j = asso; 
+	while (parent[i] >= 0)
+		i = parent[i]; 
+	while (parent[j] >= 0) 
+		j = parent[j]; 
+	//부모가 다르다면(다른 그룹이라면)
+	if (flag == UNION && i != j) 
+		union_set(i, j);//부모로 해줌
+	return (i != j); 
+}
+
+void visit(int e)
+{
+	printf(" %c%c:%d ", int2name(edge[e].v1), int2name(edge[e].v2), edge[e].weight);
+	cost += edge[e].weight;
+}
+
+void pq_insert(int h[], int v)
+{
+	h[++nheap] = v;
+	upKheap(h, nheap);
+}
+
+void kruskal(Edge e[], int V, int E)
+{
+	int n, val = 0;
+	find_init(V);
+	pq_init();
+	for (n = 0; n < E; n++)
+		pq_insert(heap, n);
+	n = 0; 
+	while (!pq_empty())
+	{
+		val = pq_Kextract(heap);
+		if (find_set(e[val].v1, e[val].v2, UNION))
+		{ 
+			visit(val); 
+			n++;
+		} 
+		if (n == V - 1) 
+			break; 
+	}
+}
+
 int main()
 {
 	int V, E;
 	fp = fopen("graph.txt", "rt");
 
 	/*
-	//for adjacency matrix
+	//------------for adjacency matrix---------------
 	//input_adjmatrix(GM, &V, &E);
 	//print_adjmatrix(GM, V);
 
-	//for adjacency list
+	//-------------for adjacency list-----------------
 	//17 18 AB AC AD BE CF DH EF FH EG GI HI JK JL MN MO NP NQ OQ
 	//input_adjlist(GL, &V, &E);
 	//print_adjlist(GL, V);
 
 
-	//traversse the given graph
+	//--------traversse the given graph----------------
 	//DFS_adjlist(GL, V);
 	//nrDFS_adjlist(GL, V);
 
-	//Add DJ JM
+	//----------------AP searching---------------------
 	//AP_search(GL, V);
 	
-	*/
+	
 
-	//for PFS searching
+	//--------------for PFS searching-------------------
 	//11 17 AB 4 AC 1 AD 2 AE 3 CD 2 DF 4 EF 4 BF 4
 	//DG 4 GH 3 HI 2 GI 3 GJ 4 IJ 2 JK 1 FJ 2 FK 4
 	input_adjlist(G, &V, &E);
@@ -519,6 +657,12 @@ int main()
 	print_tree(parent,V);
 	printf("\nMinimum Cost is ");
 	print_cost(weighted,V);
+	*/
+
+	input_edge(edge, &V, &E);
+	printf("\n\nVisited edge of minimum spanning tree\n");
+	kruskal(edge, V, E);
+	printf("\n\nMinimum cost is \'%d'\n",cost);
 
 	fclose(fp);
 
