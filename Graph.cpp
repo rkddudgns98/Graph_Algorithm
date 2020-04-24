@@ -20,10 +20,8 @@ char int2name(int i)
 //file
 FILE* fp;
 
-//DFS
+//DFS BFS
 int check[MAX_NODE] = { 0, };	//방문했는지 확인
-int stack[MAX_NODE] = { 0, };	
-int top = -1;
 
 //AP (Articulation Point)
 int APcheck[MAX_NODE] = { 0, };	//방문순서, Spannig tree
@@ -41,6 +39,8 @@ int cost = 0;
 
 
 //------------------------Stack-----------------------------
+int stack[MAX_NODE] = { 0, };
+int top = -1;
 int Push(int t)
 {
 	if (top >= MAX_NODE - 1)
@@ -75,6 +75,171 @@ int Stack_Empty()
 }
 
 
+//------------------------Queue------------------------------
+//Array based Queue (Circular)
+int queue[MAX_NODE];
+int front, rear;
+
+void Init_Queue()
+{
+	front = 0;
+	rear = 0;
+}
+
+void Clear_Queue()
+{
+	front = rear;
+}
+
+int Put(int k)
+{
+	if ((rear + 1) % MAX_NODE == front)
+	{
+		printf("  Queue overflow\n");
+		return -1;
+	}
+
+	queue[rear] = k;
+	rear = ++rear % MAX_NODE;
+
+	return k;
+}
+
+int Get()
+{
+	int j;
+
+	if (front == rear)
+	{
+		printf("  Queue underflow !!!\n");
+		return -1;
+	}
+
+	j = queue[front];
+	front = ++front % MAX_NODE;
+
+	return j;
+}
+
+void Print_Queue()
+{
+	for (int i = front; i != rear; i = ++i % MAX_NODE)
+	{
+		printf("%3d", queue[i]);
+	}
+	printf("\n");
+}
+
+int Queue_Empty() 
+{
+	if (front == rear)
+		return 1;
+	else
+		return 0;
+}
+
+//Double inked list based Queue
+typedef struct DNode {
+	int vertex;
+	struct DNode* prev;
+	struct DNode* next;
+}DNode;
+
+DNode* dhead, * dtail;
+
+void Init_LLQueue()
+{
+	dhead = (DNode*)calloc(1, sizeof(DNode));
+	dtail = (DNode*)calloc(1, sizeof(DNode));
+
+	dhead->prev = dhead;
+	dhead->next = dtail;
+	dtail->prev = dhead;
+	dtail->next = dtail;
+}
+
+//Input before tail
+int LLPut(int k)
+{
+	DNode* t;
+
+	if ((t = (DNode*)malloc(sizeof(DNode))) == NULL)
+	{
+		printf("Out of memory\n");
+		return -1;
+	}
+
+	t->vertex = k;
+	dtail->prev->next = t;
+	t->prev = dtail->prev;
+	dtail->prev = t;
+	t->next = dtail;
+
+	return k;
+}
+
+//Get after haed
+int LLGet()
+{
+	DNode* t;
+	int k;
+
+	t = dhead->next;
+
+	if (t == dtail)
+	{
+		printf("  LLQueue underflow\n");
+		return -1;
+	}
+
+	k = t->vertex;
+	dhead->next = t->next;
+	t->next->prev = dhead;
+	free(t);
+
+	return k;
+}
+
+void Clear_LLQueue()
+{
+	DNode* t, * s;
+
+	t = dhead->next;
+
+	while (t != dtail)
+	{
+		s = t;
+		t = t->next;
+		free(s);
+	}
+
+	dhead->next = dtail;
+	dtail->prev = dhead;
+}
+
+void Print_LLQueue()
+{
+	DNode* t;
+
+	t = dhead->next;
+
+	while (t != dtail)
+	{
+		printf("%3d", t->vertex);
+		t = t->next;
+	}
+	printf("\n");
+}
+
+int LLQueue_Empty() 
+{
+	if (dhead->next == dtail && dtail->prev == dhead)
+		return 1;
+	else
+		return 0;
+}
+
+
 //-----------------------adjmatrix----------------------------
 int GM[MAX_NODE][MAX_NODE];
 
@@ -82,9 +247,9 @@ int GM[MAX_NODE][MAX_NODE];
 void input_adjmatrix(int a[][MAX_NODE], int* V, int* E)
 {
 	char vertex[3];
-	int i, j, k;
+	int i, j, k, w;
 	printf("Input number of node & edge\n");
-	scanf("%d %d", V, E);
+	fscanf(fp,"%d %d", V, E);
 
 	for (i = 0; i < *V; i++)
 	{
@@ -97,14 +262,14 @@ void input_adjmatrix(int a[][MAX_NODE], int* V, int* E)
 	{
 		a[i][i] = 1;	//대각행렬
 	}
+	printf("Input two node consist of edge & weight\n");
 	for (k = 0; k < *E; k++)
 	{
-		printf("\nInput two node consist of edge ->");
-		scanf("%s", vertex);
+		fscanf(fp,"%s %d", vertex, &w);
 		i = name2int(vertex[0]);
 		j = name2int(vertex[1]);
-		a[i][j] = 1;
-		a[j][i] = 1;	//symetric
+		a[i][j] = w;
+		a[j][i] = w;	//symetric
 	}
 }
 
@@ -125,8 +290,9 @@ void print_adjmatrix(int a[][MAX_NODE], int V)
 		{
 			printf("%3d", a[i][j]);//matrix출력
 		}
-		printf("\n\n");
+		printf("\n");
 	}
+	printf("\n");
 }
 
 
@@ -202,8 +368,62 @@ void print_adjlist(Node* a[], int V)
 
 
 //------------------------DFS------------------------------
-//recursive version DFS
-void DFS_recur_list(Node* a[], int V, int i)
+//---------adjmatrix-----------
+//recursive version DFS adjmatrix
+void DFS_recur_matrix(int a[][MAX_NODE], int V, int i) 
+{ 
+	check[i] = 1;
+	printf("%3c", int2name(i));
+	for (int j = 0; j < V; j++) 
+		if (a[i][j] != 0) 
+			if (check[j] == 0) 
+				DFS_recur_matrix(a, V, j);
+}
+
+void DFS_adjmatrix(int a[][MAX_NODE], int V)
+{ 
+	int i;
+	for (i = 0; i < V; i++) 
+		check[i] = 0;
+	for (i = 0; i < V; i++) 
+		if (check[i] == 0)
+			DFS_recur_matrix(a, V, i); 
+	printf("\n");
+}
+
+//non-recursive version DFS adjmatrix
+void nrDFS_adjmatrix(int a[][MAX_NODE], int V)
+{
+	int i, j;
+	Init_Stack();
+	for (i = 0; i < V; i++)
+		check[i] = 0;
+	for (i = 0; i < V; i++)
+	{
+		if (check[i] == 0)
+		{
+			Push(i);
+			check[i] = 1;
+			while (!Stack_Empty())
+			{
+				i = Pop();
+				printf("%3c", int2name(i));
+				for (j = 0; j < V; j++)
+					if (a[i][j] != 0)
+						if (check[j] == 0)
+						{
+							Push(j);
+							check[j] = 1;
+						}
+			}
+		}
+	}
+	printf("\n");
+}
+
+//----------adjlist------------
+//recursive version DFS adjlist
+void DFS_recur_adjlist(Node* a[], int V, int i)
 {
 	Node* t;
 	check[i] = 1;
@@ -211,7 +431,7 @@ void DFS_recur_list(Node* a[], int V, int i)
 	for (t = a[i]; t != NULL; t = t->next)
 	{
 		if (check[t->vertex] == 0)
-			DFS_recur_list(a, V, t->vertex);
+			DFS_recur_adjlist(a, V, t->vertex);
 	}
 }
 
@@ -223,13 +443,12 @@ void DFS_adjlist(Node* a[], int V)
 	for (i = 0; i < V; i++)
 	{
 		if (check[i] == 0)
-			DFS_recur_list(a, V, i);
+			DFS_recur_adjlist(a, V, i);
 	}
 	printf("\n");
 }
 
-
-//non-recursive version DFS
+//non-recursive version DFS adjlist
 void nrDFS_adjlist(Node* a[], int V)
 {
 	Init_Stack();	//top = -1;
@@ -261,11 +480,80 @@ void nrDFS_adjlist(Node* a[], int V)
 			}
 		}
 	}
-	printf("\n\n");
+	printf("\n");
 }
 
 
-//----------------------Find AP----------------------------
+
+//-------------------------BFS------------------------------
+//-----------adjmatrix----------
+//recursive version BFS adjmatrix is same DFS
+
+//non-recursive version BFS adjmatrix
+void nrBFS_adjmatrix(int a[][MAX_NODE], int V)
+{
+	int i, j;
+	Init_Queue();	//queue배열 초기화
+	for (i = 0; i < V; i++)	//모두 방문안함
+		check[i] = 0;
+	for (i = 0; i < V; i++)	//전체노드에 대해서
+	{
+		if (check[i] == 0)	//방문을 안했다면
+		{
+			Put(i);	//queue put
+			check[i] = 1;	//방문체크
+			while (!Queue_Empty())	//queue가 비지않았을때
+			{
+				i = Get();	//queue get
+				printf("%3c", int2name(i));	//방문했음을 출력
+				for (j = 0; j < V; j++)	//전체노드에대해
+					if (a[i][j] != 0)	//연결되어있고
+						if (check[j] == 0)	//방문안했다면
+						{
+							Put(j);	//queue put
+							check[j] = 1;	//방문했음을 체크
+						}
+			}
+		}
+	}
+}
+
+//-----------adjlist--------------
+//BFS can't be recursive
+
+//non-recursive version BFS adjlist
+void nrBFS_adjlist(Node* a[], int V)
+{
+	int i;
+	Node* t;
+	Init_LLQueue();	
+	for (i = 0; i < V; i++)
+		check[i] = 0;
+	for (i = 0; i < V; i++)
+	{
+		if (check[i] == 0)
+		{
+			LLPut(i);
+			check[i] = 1;
+			while (!LLQueue_Empty())
+			{
+				i = LLGet();
+				//visit
+				printf("%3c", int2name(i));
+				for (t = a[i]; t != NULL; t = t->next)
+					if (check[t->vertex] == 0)
+					{
+						LLPut(t->vertex);
+						check[t->vertex] = 1;
+					}
+			}
+		}
+	}
+}
+
+
+
+//------------------------Find AP----------------------------
 int AP_recur(Node* a[], int i)
 {
 	Node* t; 
@@ -320,9 +608,7 @@ void AP_search(Node* a[], int V)
 }
 
 
-//----------------------PFS--------------------------------
-Node* G[MAX_NODE];
-
+//---------------------------PFS-----------------------------
 int pq_empty()
 {
 	if (nheap == 0)
@@ -475,7 +761,7 @@ void print_tree(int p[],int V)
 	printf("\n");
 }
 
-void print_cost(int w[],int V)
+int get_cost(int w[],int V)
 {
 	int cost = 0;
 	//최소비용은 weight를 모두 더한 값
@@ -483,7 +769,7 @@ void print_cost(int w[],int V)
 	{
 		cost += w[i];
 	}
-	printf("\'%d'\n", cost);
+	return cost;
 }
 
 
@@ -540,7 +826,7 @@ int pq_Kextract(int h[])
 	return v;
 }
 
-//input edge ( v1,v2,weight)
+//input edge (v1,v2,weight)
 void input_edge(Edge e[], int* V, int* E)
 {
 	char vertex[3];
@@ -618,51 +904,58 @@ void kruskal(Edge e[], int V, int E)
 	}
 }
 
+
+
 int main()
 {
 	int V, E;
 	fp = fopen("graph.txt", "rt");
 
-	/*
+	//17 18 AB AC AD BE CF DH EF FH EG GI HI JK JL MN MO NP NQ OQ
+	
 	//------------for adjacency matrix---------------
 	//input_adjmatrix(GM, &V, &E);
 	//print_adjmatrix(GM, V);
 
 	//-------------for adjacency list-----------------
-	//17 18 AB AC AD BE CF DH EF FH EG GI HI JK JL MN MO NP NQ OQ
 	//input_adjlist(GL, &V, &E);
 	//print_adjlist(GL, V);
 
+	//------------------------DFS-----------------------
+	//-------adjmatrix--------
+	//DFS_adjmatrix(GM, V);
+	//nrDFS_adjmatrix(GM, V);
 
-	//--------traversse the given graph----------------
+	//--------adjlist---------
 	//DFS_adjlist(GL, V);
 	//nrDFS_adjlist(GL, V);
+
+	//------------------------BFS-----------------------
+	//nrBFS_adjmatrix(GM,V);
+	//nrBFS_adjlist(GL,V);
 
 	//----------------AP searching---------------------
 	//AP_search(GL, V);
 	
-	
-
 	//--------------for PFS searching-------------------
 	//11 17 AB 4 AC 1 AD 2 AE 3 CD 2 DF 4 EF 4 BF 4
 	//DG 4 GH 3 HI 2 GI 3 GJ 4 IJ 2 JK 1 FJ 2 FK 4
-	input_adjlist(G, &V, &E);
-	
-	printf("\nOriginal graph\n");
-	print_adjlist(G, V);
 
-	printf("\nVisit order of Minimum Spanning Tree");
-	PFS_adjlist(G, V);
-	
-	print_tree(parent,V);
-	printf("\nMinimum Cost is ");
-	print_cost(weighted,V);
-	*/
+	//printf("\nOriginal graph\n");
+	//print_adjlist(GL, V);
 
-	input_edge(edge, &V, &E);
-	printf("\n\nVisited edge of minimum spanning tree\n");
-	kruskal(edge, V, E);
-	printf("\n\nMinimum cost is \'%d'\n",cost);
+	//printf("\nVisit order of Minimum Spanning Tree");
+	//PFS_adjlist(GL, V);
+	
+	//printf("Parents-Sons\n");
+	//print_tree(parent,V);
+	//printf("\nMinimum Cost is \'%d'",get_cost(weighted, V));
+	
+	//---------------------Kruskal-----------------------
+	//input_edge(edge, &V, &E);
+	//printf("\n\nVisited edge of minimum spanning tree\n");
+	//kruskal(edge, V, E);
+	//printf("\n\nMinimum cost is \'%d'\n",cost);
 
 	fclose(fp);
 
