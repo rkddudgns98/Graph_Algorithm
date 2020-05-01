@@ -243,8 +243,7 @@ int LLQueue_Empty()
 //-----------------------adjmatrix----------------------------
 int GM[MAX_NODE][MAX_NODE];
 
-
-void input_adjmatrix(int a[][MAX_NODE], int* V, int* E)
+void input_Fadjmatrix(int a[][MAX_NODE], int* V, int* E)
 {
 	char vertex[3];
 	int i, j, k, w;
@@ -273,8 +272,39 @@ void input_adjmatrix(int a[][MAX_NODE], int* V, int* E)
 	}
 }
 
+void input_adjmatrix(int a[][MAX_NODE], int* V, int* E)
+{
+	printf("\n--Input_adjmatrix--\n");
+	char vertex[3];
+	int i, j, k, w;
+	printf("Input number of node & edge\n");
+	scanf("%d %d", V, E);
+
+	for (i = 0; i < *V; i++)
+	{
+		for (j = 0; j < *V; j++)
+		{
+			a[i][j] = 0;	//2D array
+		}
+	}
+	for (i = 0; i < *V; i++)
+	{
+		a[i][i] = 1;	//대각행렬
+	}
+	printf("Input two node consist of edge & weight\n");
+	for (k = 0; k < *E; k++)
+	{
+		scanf("%s %d", vertex, &w);
+		i = name2int(vertex[0]);
+		j = name2int(vertex[1]);
+		a[i][j] = w;
+		a[j][i] = w;	//symetric
+	}
+}
+
 void print_adjmatrix(int a[][MAX_NODE], int V)
 {
+	printf("\n--Print_matrix--\n");
 	printf("   ");
 	for (int i = 0; i < V; i++)
 	{
@@ -306,7 +336,7 @@ typedef struct Node {
 //Node
 Node* GL[MAX_NODE];
 
-void input_adjlist(Node* a[], int* V, int* E)
+void input_Fadjlist(Node* a[], int* V, int* E)
 {
 	Node* t;
 
@@ -347,8 +377,52 @@ void input_adjlist(Node* a[], int* V, int* E)
 	printf("\n\n");
 }
 
+void input_adjlist(Node* a[], int* V, int* E)
+{
+	printf("\n--Input_adjlist--\n");
+	Node* t;
+
+	char vertex[3];	//입력받을 문자열 공간
+
+	int i, j, w;	//w= weight
+
+	//노드와 엣지의 개수입력받기
+	printf("\nInput number of node & edge\n");
+	scanf("%d %d", V, E);
+
+	//노드 포인터 타입 배열 초기화 (포인터라 NULL로 초기화)
+	for (i = 0; i < *V; i++)
+	{
+		a[i] = NULL;
+	}
+
+
+	for (int j = 0; j < *E; j++)
+	{
+		printf("Input two node consist of edge & weight");
+		scanf("%s %d", vertex, &w);	//AB를 입력받고,AC를 입력받고
+		i = name2int(vertex[0]);	//A-> ,A->
+		t = (Node*)malloc(sizeof(Node));	//노드생성
+		t->vertex = name2int(vertex[1]);	//B를 넣어주고, C를넣어주고
+		t->next = a[i];	//B->NULL를 해준다, C->B를해준다
+		a[i] = t;	//A->B, A->C
+		t->weight = w;	//input weight
+
+		//symetric(대칭)
+		i = name2int(vertex[1]);
+		t = (Node*)malloc(sizeof(Node));
+		t->vertex = name2int(vertex[0]);
+		t->next = a[i];
+		a[i] = t;
+		t->weight = w;
+	}
+	printf("\n\n");
+}
+
+
 void print_adjlist(Node* a[], int V)
 {
+	printf("\n--Print_adjlist--\n");
 	Node* t;
 
 	for (int i = 0; i < V; i++) {
@@ -370,35 +444,37 @@ void print_adjlist(Node* a[], int V)
 //------------------------DFS------------------------------
 //---------adjmatrix-----------
 //recursive version DFS adjmatrix
-void DFS_recur_matrix(int a[][MAX_NODE], int V, int i) 
+void DFS_recur_adjmatrix(int a[][MAX_NODE], int V, int i) 
 { 
 	check[i] = 1;
 	printf("%3c", int2name(i));
-	for (int j = 0; j < V; j++) 
-		if (a[i][j] != 0) 
-			if (check[j] == 0) 
-				DFS_recur_matrix(a, V, j);
+	for (int j = V - 1; j >= 0; j--)
+		if (a[i][j] != 0)
+			if (check[j] == 0)
+				DFS_recur_adjmatrix(a, V, j);
 }
 
 void DFS_adjmatrix(int a[][MAX_NODE], int V)
 { 
+	printf("\n--DFS_adjmatrix--\n");
 	int i;
 	for (i = 0; i < V; i++) 
 		check[i] = 0;
-	for (i = 0; i < V; i++) 
+	for (i = 0; i < V; i++)
 		if (check[i] == 0)
-			DFS_recur_matrix(a, V, i); 
+			DFS_recur_adjmatrix(a, V, i);
+
 	printf("\n");
 }
 
 //non-recursive version DFS adjmatrix
 void nrDFS_adjmatrix(int a[][MAX_NODE], int V)
 {
-	int i, j;
+	printf("\n--nrDFS_adjmatrix--\n");
 	Init_Stack();
-	for (i = 0; i < V; i++)
+	for (int i = 0; i < V; i++)
 		check[i] = 0;
-	for (i = 0; i < V; i++)
+	for (int i = 0; i < V; i++)
 	{
 		if (check[i] == 0)
 		{
@@ -408,7 +484,7 @@ void nrDFS_adjmatrix(int a[][MAX_NODE], int V)
 			{
 				i = Pop();
 				printf("%3c", int2name(i));
-				for (j = 0; j < V; j++)
+				for (int j = 0; j < V; j++)
 					if (a[i][j] != 0)
 						if (check[j] == 0)
 						{
@@ -429,28 +505,28 @@ void DFS_recur_adjlist(Node* a[], int V, int i)
 	check[i] = 1;
 	printf("%3c", int2name(i));
 	for (t = a[i]; t != NULL; t = t->next)
-	{
 		if (check[t->vertex] == 0)
 			DFS_recur_adjlist(a, V, t->vertex);
-	}
+	
 }
 
 void DFS_adjlist(Node* a[], int V)
 {
+	printf("\n--DFS_adjlist--\n");
 	int i;
 	for (i = 0; i < V; i++)
 		check[i] = 0;
 	for (i = 0; i < V; i++)
-	{
 		if (check[i] == 0)
 			DFS_recur_adjlist(a, V, i);
-	}
 	printf("\n");
 }
 
 //non-recursive version DFS adjlist
 void nrDFS_adjlist(Node* a[], int V)
 {
+	printf("\n--nrDFS_adjlist--\n");
+	Node* t;
 	Init_Stack();	//top = -1;
 	for (int i = 0; i < V; i++)	//check 초기화
 		check[i] = 0;
@@ -459,7 +535,6 @@ void nrDFS_adjlist(Node* a[], int V)
 	{
 		if (check[i] == 0)	//방문안했을때
 		{
-			Node* t;
 			Push(i);	//push
 			check[i] = 1;	//방문했음
 			while (!Stack_Empty())	//스택이 빌때까지
@@ -487,11 +562,35 @@ void nrDFS_adjlist(Node* a[], int V)
 
 //-------------------------BFS------------------------------
 //-----------adjmatrix----------
-//recursive version BFS adjmatrix is same DFS
+//recursive version BFS adjmatrix is same DFS, just dif <j>
+//truly it is not BFS
+void BFS_recur_adjmatrix(int a[][MAX_NODE], int V, int i)
+{
+	check[i] = 1;
+	printf("%3c", int2name(i));
+	for (int j = 0; j < V; j++)
+		if (a[i][j] != 0)
+			if (check[j] == 0)
+				DFS_recur_adjmatrix(a, V, j);
+}
+
+void BFS_adjmatrix(int a[][MAX_NODE], int V)
+{
+	printf("\n--BFS_adjmatrix--\n");
+	int i;
+	for (i = 0; i < V; i++)
+		check[i] = 0;
+	for (i = 0; i < V; i++)
+		if (check[i] == 0)
+			BFS_recur_adjmatrix(a, V, i);
+
+	printf("\n");
+}
 
 //non-recursive version BFS adjmatrix
 void nrBFS_adjmatrix(int a[][MAX_NODE], int V)
 {
+	printf("\n--nrBFS_adjmatrix--\n");
 	int i, j;
 	Init_Queue();	//queue배열 초기화
 	for (i = 0; i < V; i++)	//모두 방문안함
@@ -524,6 +623,7 @@ void nrBFS_adjmatrix(int a[][MAX_NODE], int V)
 //non-recursive version BFS adjlist
 void nrBFS_adjlist(Node* a[], int V)
 {
+	printf("\n--nrBFS_adjlist--\n");
 	int i;
 	Node* t;
 	Init_LLQueue();	
@@ -549,12 +649,104 @@ void nrBFS_adjlist(Node* a[], int V)
 			}
 		}
 	}
+	printf("\n");
 }
 
 
+//-------------------Count Componenets-----------------------
+void Count_Components_adjmatrix(int a[][MAX_NODE], int V)
+{
+	printf("\n--Count_Componenets--\n");
+	int count = 0;
+	Init_Stack();
+	for (int i = 0; i < V; i++)
+		check[i] = 0;
+	for (int i = 0; i < V; i++)
+	{
+		if (check[i] == 0)
+		{
+			count++;
+			Push(i);
+			check[i] = 1;
+			while (!Stack_Empty())
+			{
+				i = Pop();
+				printf("%3c", int2name(i));
+				for (int j = 0; j < V; j++)
+					if (a[i][j] != 0)
+						if (check[j] == 0)
+						{
+							Push(j);
+							check[j] = 1;
+						}
+			}
+		}
+	}
+	printf("	# of graph: %d\n", count);
+}
 
 //------------------------Find AP----------------------------
-int AP_recur(Node* a[], int i)
+//------------adjmatrix-----------------
+int AP_recur_adjmatrix(int a[][MAX_NODE], int i,int V)
+{
+	int min, m;
+
+	APcheck[i] = min = ++APorder;
+
+	//연결된 노드들 검사
+	for (int v = V-1; v >= 0; v--)
+	{
+		if (a[i][v] == 1)
+		{
+			//Root부모에대해 t->vertex번째의 자식이 있다면
+			if (i == 0 && APcheck[v] == 0)
+				son_of_root++;	//자식의 개수 ++
+
+			//tree-edge
+			if (APcheck[v] == 0)	//방문했는가
+			{
+				//m=연결된 노드의 최상위노드
+				m = AP_recur_adjmatrix(a, v, V);
+
+				if (m <= min)
+					min = m;
+
+				//m>=APcheck[i]이면 i보다 상위노드와 연결되어있다
+				if (m >= APcheck[i] && i != 0)	//AP이면 *표시
+					printf(" * %c %3d : %d\n", int2name(i), APcheck[i], m);
+				else //AP가 아니면
+					printf(" %3c %3d : %d\n", int2name(i), APcheck[i], m);
+			}
+			//non-tree-edge
+			else if (APcheck[v] < min)
+				min = APcheck[v];	//min값 재설정
+		}
+	}
+
+	return min;
+}
+
+void AP_adjmatrix(int a[][MAX_NODE], int V)
+{
+	printf("\n--AP_search(adjmatrix)--\n");
+	int i, n = 0;
+
+	for (i = 0; i < V; i++)//방문안함	
+		APcheck[i] = 0;
+
+	APorder = son_of_root = 0;
+
+	AP_recur_adjmatrix(a, 0, V);	//0, 'A'부터 시작
+
+	if (son_of_root > 1) //자식이 여러개, 즉 AP이면 *표시
+		printf(" * %c son : %d\n\n", int2name(0), son_of_root);
+	else
+		printf(" %3c son : %d\n\n", int2name(0), son_of_root);
+}
+
+
+//-------------adjlist-------------------
+int AP_recur_adjlist(Node* a[], int i)
 {
 	Node* t; 
 	int min, m; 
@@ -564,18 +756,20 @@ int AP_recur(Node* a[], int i)
 	//연결된 노드들 검사
 	for (t = a[i]; t != NULL; t = t->next)
 	{
-		//i번째 부모에대해 t->vertex번째의 자식이 있다면
+		//Root부모에대해 t->vertex번째의 자식이 있다면
 		if (i == 0 && APcheck[t->vertex] == 0) 
 			son_of_root++;	//자식의 개수 ++
 
 		//tree-edge
 		if (APcheck[t->vertex] == 0)	//방문했는가
 		{
-			m = AP_recur(a, t->vertex);
+			//m=연결된 노드의 최상위노드
+			m = AP_recur_adjlist(a, t->vertex);
 
 			if (m < min)
 				min = m;
 
+			//m>=APcheck[i]이면 i보다 상위노드와 연결되어있다
 			if (m >= APcheck[i] && i != 0)	//AP이면 *표시
 				printf(" * %c %3d : %d\n", int2name(i), APcheck[i], m); 
 			else //AP가 아니면
@@ -589,8 +783,9 @@ int AP_recur(Node* a[], int i)
 	return min;
 }
 
-void AP_search(Node* a[], int V) 
+void AP_adjlist(Node* a[], int V) 
 {
+	printf("\n--AP_search(adjlist)--\n");
 	int i, n = 0; 
 	Node* t;
 
@@ -599,7 +794,7 @@ void AP_search(Node* a[], int V)
 
 	APorder = son_of_root = 0; 
 
-	AP_recur(a, 0);	//0, 'A'부터 시작
+	AP_recur_adjlist(a, 0);	//0, 'A'부터 시작
 
 	if (son_of_root > 1) //자식이 여러개, 즉 AP이면 *표시
 		printf(" * %c son : %d\n\n", int2name(0), son_of_root);
@@ -677,7 +872,6 @@ int pq_extract(int h[])
 
 void print_heap(int h[])
 {
-	printf("\n");
 	for (int i = 1; i <= nheap; i++)
 		printf("  %c:%d ", int2name(h[i]), weighted[h[i]]);
 }
@@ -706,6 +900,7 @@ int pq_update(int h[], int v, int p)	//v=index, p=weight
 
 void PFS_adjlist(Node* g[], int V)
 {
+	printf("\n--PFS_adjlist--\n");
 	int i;
 	Node* t;
 	pq_init();	//힙의 길이 = 0
@@ -729,7 +924,7 @@ void PFS_adjlist(Node* g[], int V)
 				print_heap(heap);	//heap출력(index:weighted)
 				i = pq_extract(heap);	//추출 = 나무정점
 				weighted[i] = -weighted[i];	//양수로 바꿔줌
-				printf(" --> %c", int2name(i));
+				printf(" --> %c\n", int2name(i));
 
 				for (t = g[i]; t != NULL; t = t->next)
 				{
@@ -741,13 +936,55 @@ void PFS_adjlist(Node* g[], int V)
 			}
 		}
 	}
+	printf("\n");
+}
 
-	printf("\n\n");
+void PFS_adjmatrix(int a[][MAX_NODE], int V)
+{
+	printf("\n--PFS_adjmatrix--\n");
+	int i;
+	pq_init();	//힙의 길이 = 0
+
+	//Init
+	for (i = 0; i < V; i++)
+	{
+		weighted[i] = UNSEEN; //가중치 = UNSEEN, 우선순위가 최상
+		parent[i] = 0; //부모노드
+	}
+
+	for (i = 0; i < V; i++)
+	{
+		if (weighted[i] == UNSEEN)	//방문 안했을때
+		{
+			parent[i] = -1;
+			pq_update(heap, i, UNSEEN); //힙 재조정(가중치)
+
+			while (!pq_empty())	//힙에 데이터가 존재할때
+			{
+				print_heap(heap);	//heap출력(index:weighted)
+				i = pq_extract(heap);	//추출 = 나무정점
+				weighted[i] = -weighted[i];	//양수로 바꿔줌
+				printf(" --> %c\n", int2name(i));
+
+				for (int v = V; v >= 0; v--)
+				{
+					if (a[i][v] > 0) {
+						if (weighted[v] < 0) //UNSEEN or Fringe
+							//가중치가 업데이트 되면
+							if (pq_update(heap, v, -a[i][v]))
+								parent[v] = i;	//부모는 i이다
+					}
+				}
+			}
+		}
+	}
+	printf("\n");
 }
 
 //print parents and son
 void print_tree(int p[],int V)
 {
+	printf("\n--Parent-Sons--\n");
 	//node의 개수만큼 알파벳 순차출력
 	printf("Son:    ");
 	for (int i = 0; i < V; i++)
@@ -765,7 +1002,7 @@ int get_cost(int w[],int V)
 {
 	int cost = 0;
 	//최소비용은 weight를 모두 더한 값
-	for (int i = 1; i < V; i++)
+	for (int i = 1; i < V; i++)	//뿌리노드는 ㄴㄴ
 	{
 		cost += w[i];
 	}
@@ -833,8 +1070,8 @@ void input_edge(Edge e[], int* V, int* E)
 	int i, j, w;
 
 	printf("\nInput number of nodes and edges\n"); 
-	printf("Input two nodes consisting of edge and its weight");
 	fscanf(fp, "%d %d", V, E);
+	printf("Input two nodes consisting of edge and its weight");
 	for (j = 0; j < *E; j++)
 	{
 		fscanf(fp, "%s %d", vertex, &w);
@@ -846,7 +1083,7 @@ void input_edge(Edge e[], int* V, int* E)
 }
 
 //부모노드 -1로 초기화
-void find_init(int elem)
+void init_find(int elem)
 { 
 	int i;
 	for (i = 0; i < elem; i++) 
@@ -886,20 +1123,20 @@ void pq_insert(int h[], int v)
 void kruskal(Edge e[], int V, int E)
 {
 	int n, val = 0;
-	find_init(V);
+	init_find(V);
 	pq_init();
 	for (n = 0; n < E; n++)
 		pq_insert(heap, n);
 	n = 0; 
 	while (!pq_empty())
 	{
-		val = pq_Kextract(heap);
-		if (find_set(e[val].v1, e[val].v2, UNION))
+		val = pq_Kextract(heap);	//heap의 index는 알파벳, 정렬순서는 weight
+		if (find_set(e[val].v1, e[val].v2, UNION))	//부모가 같다면 다른루트가 있음
 		{ 
 			visit(val); 
 			n++;
 		} 
-		if (n == V - 1) 
+		if (n == V - 1) //최소 V개 노드에대해 V-1엣지가 있어야 서치가능
 			break; 
 	}
 }
@@ -911,14 +1148,15 @@ int main()
 	int V, E;
 	fp = fopen("graph.txt", "rt");
 
-	//17 18 AB AC AD BE CF DH EF FH EG GI HI JK JL MN MO NP NQ OQ
+	//17 18 AB 1 AC 1 AD 1 BE 1 CF 1 DH 1
+	//EF 1 FH 1 EG 1 GI 1 HI 1 JK 1 JL 1 MN 1 MO 1 NP 1 NQ 1 OQ 1
 	
 	//------------for adjacency matrix---------------
-	//input_adjmatrix(GM, &V, &E);
+	//input_Fadjmatrix(GM, &V, &E);
 	//print_adjmatrix(GM, V);
 
 	//-------------for adjacency list-----------------
-	//input_adjlist(GL, &V, &E);
+	//input_Fadjlist(GL, &V, &E);
 	//print_adjlist(GL, V);
 
 	//------------------------DFS-----------------------
@@ -931,11 +1169,21 @@ int main()
 	//nrDFS_adjlist(GL, V);
 
 	//------------------------BFS-----------------------
+	//--------adjmatirx-------
+	//BFS_adjmatrix(GM, V);
 	//nrBFS_adjmatrix(GM,V);
+
+	//---------adjlist--------
+	//recursive is impossible
 	//nrBFS_adjlist(GL,V);
 
+	//---------------------Count Components-------------
+	//Count_Components_adjmatrix(GM, V);
+
 	//----------------AP searching---------------------
-	//AP_search(GL, V);
+	//DJ JM
+	//AP_adjlist(GL, V);
+	//AP_adjmatrix(GM, V);
 	
 	//--------------for PFS searching-------------------
 	//11 17 AB 4 AC 1 AD 2 AE 3 CD 2 DF 4 EF 4 BF 4
@@ -943,13 +1191,15 @@ int main()
 
 	//printf("\nOriginal graph\n");
 	//print_adjlist(GL, V);
+	//print_adjmatrix(GM, V);
 
 	//printf("\nVisit order of Minimum Spanning Tree");
 	//PFS_adjlist(GL, V);
+	//PFS_adjmatrix(GM, V);
 	
 	//printf("Parents-Sons\n");
 	//print_tree(parent,V);
-	//printf("\nMinimum Cost is \'%d'",get_cost(weighted, V));
+	//printf("\nMinimum Cost is \'%d'\n",get_cost(weighted, V));
 	
 	//---------------------Kruskal-----------------------
 	//input_edge(edge, &V, &E);
@@ -958,7 +1208,6 @@ int main()
 	//printf("\n\nMinimum cost is \'%d'\n",cost);
 
 	fclose(fp);
-
 
 	return 0;
 }
