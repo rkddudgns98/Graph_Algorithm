@@ -38,6 +38,9 @@ int parent[MAX_NODE] = { 0, };
 //Kruskal
 int cost = 0;
 
+//dijkstra
+int distance[MAX_NODE] = { 0, };
+
 
 //------------------------Stack-----------------------------
 int stack[MAX_NODE] = { 0, };
@@ -1183,6 +1186,7 @@ void Shortest_adjlist(Node* g[], int start, int V)
 	}
 	printf("\n");
 }
+
 void Shortest_adjmatrix(int a[][MAX_NODE], int start, int V)
 {
 	printf("\n--Shortest_adjmatrix--\n");
@@ -1223,7 +1227,70 @@ void Shortest_adjmatrix(int a[][MAX_NODE], int start, int V)
 }
 
 
+//----------------------dijkstra algorithm-----------------------
+void Print_dijkstra(int a[], int start, int V)
+{
+	printf("%5c", int2name(start));
 
+	for (int j = 0; j < V; j++)
+	{
+		printf("%5d", a[j]);	//distance출력
+	}
+	printf("\n");
+}
+
+void Dijkstra(int a[][MAX_NODE], int start, int V)
+{
+	printf("--dijkstra--\n");
+	int x = 0, y, d;
+	int i, checked = 0;
+	for (x = 0; x < V; x++)	//모든정점 x에 대해
+	{
+		distance[x] = a[start][x];	//start node와 거리저장
+		if (x != start) 
+			parent[x] = start;	//부모는 start node이다
+	}
+	check[start] = 1;	//start node 방문
+	checked++;	//모두 방문함을 세어줄 카운트
+
+	//print_distance(distance, start, V)
+	printf("     ");
+	for (int i = 0; i < V; i++)
+	{
+		printf("%5c", int2name(i));		//첫줄(A,B,C,D ...)
+	}
+	printf("\n");
+	Print_dijkstra(distance, start, V);
+
+	while (checked < V)	//모두 방문할때까지
+	{
+		x = 0;	//A부터
+		while (check[x]) 
+			x++;	//방문했다면 다음으로
+		for (i = x; i < V; i++)	//x부터 마지막노드까지
+			if (check[i] == 0 && distance[i] < distance[x])	//아직 방문안했고, 가중치가 작으면
+				x = i;	//가중치가 최소인 node
+		check[x] = 1;	//x node 방문
+		checked++;	
+
+		for (y = 0; y < V; y++)	
+		{
+			if (x == y || a[x][y] >= INFINITE || check[y])	
+				continue;
+			d = distance[x] + a[x][y];	//누적된 가중치에 새로운 가중치 누적
+			if (d < distance[y]) //누적된 가중치가 기존 가중치보다 작다면(최단루트라면)
+			{
+				distance[y] = d; //누적가중치 변경
+				parent[y] = x;	//부모변경
+			}
+		}
+		//print_distance(distance, x, V)
+		Print_dijkstra(distance, x, V);
+	}
+	//print result
+	printf("Result from %c to\n", int2name(start));
+	Print_dijkstra(distance, start, V);
+}
 
 
 int main()
@@ -1294,6 +1361,8 @@ int main()
 	//Shortest_adjmatrix(GM, 5, V);
 	//Shortest_adjlist(GL, 5, V);
 
+	//----------------dijkstra algorithm------------------
+	//Dijkstra(GM, 5, V);
 
 	fclose(fp);
 
