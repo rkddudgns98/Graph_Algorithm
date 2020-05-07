@@ -7,6 +7,7 @@
 #define ONLY_FIND 0
 #define UNION 1
 #define UNSEEN (-INT_MAX)
+#define INFINITE 1000
 
 int name2int(char c)
 {
@@ -254,12 +255,12 @@ void input_Fadjmatrix(int a[][MAX_NODE], int* V, int* E)
 	{
 		for (j = 0; j < *V; j++)
 		{
-			a[i][j] = 0;	//2D array
+			a[i][j] = INFINITE;	//2D array
 		}
 	}
 	for (i = 0; i < *V; i++)
 	{
-		a[i][i] = 1;	//대각행렬
+		a[i][i] = 0;	//대각행렬
 	}
 	printf("Input two node consist of edge & weight\n");
 	for (k = 0; k < *E; k++)
@@ -308,17 +309,17 @@ void print_adjmatrix(int a[][MAX_NODE], int V)
 	printf("   ");
 	for (int i = 0; i < V; i++)
 	{
-		printf("%3c", int2name(i));		//첫줄(A,B,C,D ...)
+		printf("%5c", int2name(i));		//첫줄(A,B,C,D ...)
 	}
 
 	printf("\n");
 
 	for (int i = 0; i < V; i++)
 	{
-		printf("%3c", int2name(i));	//첫칸
+		printf("%5c", int2name(i));	//첫칸
 		for (int j = 0; j < V; j++)
 		{
-			printf("%3d", a[i][j]);//matrix출력
+			printf("%5d", a[i][j]);//matrix출력
 		}
 		printf("\n");
 	}
@@ -615,6 +616,7 @@ void nrBFS_adjmatrix(int a[][MAX_NODE], int V)
 			}
 		}
 	}
+	printf("\n");
 }
 
 //-----------adjlist--------------
@@ -924,7 +926,7 @@ void PFS_adjlist(Node* g[], int V)
 				print_heap(heap);	//heap출력(index:weighted)
 				i = pq_extract(heap);	//추출 = 나무정점
 				weighted[i] = -weighted[i];	//양수로 바꿔줌
-				printf(" --> %c\n", int2name(i));
+				printf(" --> %c:%d\n", int2name(i), weighted[i]);
 
 				for (t = g[i]; t != NULL; t = t->next)
 				{
@@ -964,7 +966,7 @@ void PFS_adjmatrix(int a[][MAX_NODE], int V)
 				print_heap(heap);	//heap출력(index:weighted)
 				i = pq_extract(heap);	//추출 = 나무정점
 				weighted[i] = -weighted[i];	//양수로 바꿔줌
-				printf(" --> %c\n", int2name(i));
+				printf(" --> %c:%d\n", int2name(i), weighted[i]);
 
 				for (int v = V; v >= 0; v--)
 				{
@@ -1142,6 +1144,87 @@ void kruskal(Edge e[], int V, int E)
 }
 
 
+//----------------------Shortest_adjlist------------------------
+void Shortest_adjlist(Node* g[], int start, int V)
+{
+	printf("\n--Shortest_adjlist--\n");
+	int i;
+	Node* t;
+	pq_init();	//힙의 길이 = 0
+
+	//Init
+	for (i = 0; i < V; i++)
+	{
+		weighted[i] = UNSEEN; //가중치 = UNSEEN, 우선순위가 최하
+		parent[i] = 0; //부모노드
+	}
+	i = start;	//시작노드
+
+	if (weighted[i] == UNSEEN)	//방문 안했을때
+	{
+		parent[i] = -1;
+		pq_update(heap, i, 0); //힙 재조정(가중치)
+
+		while (!pq_empty())	//힙에 데이터가 존재할때
+		{
+			print_heap(heap);	//heap출력(index:weighted)
+			i = pq_extract(heap);	//추출 = 나무정점
+			weighted[i] = -weighted[i];	//양수로 바꿔줌
+			printf(" --> %c to %c:%d\n", int2name(start), int2name(i), weighted[i]);
+
+			for (t = g[i]; t != NULL; t = t->next)
+			{
+				if (weighted[t->vertex] < 0) //UNSEEN or Fringe
+					//가중치(누적)가 업데이트 되면
+					if (pq_update(heap, t->vertex, -t->weight - weighted[i]))
+						parent[t->vertex] = i;	//부모는 i이다
+			}
+		}
+	}
+	printf("\n");
+}
+void Shortest_adjmatrix(int a[][MAX_NODE], int start, int V)
+{
+	printf("\n--Shortest_adjmatrix--\n");
+	int i;
+	pq_init();	//힙의 길이 = 0
+
+	//Init
+	for (i = 0; i < V; i++)
+	{
+		weighted[i] = UNSEEN; //가중치 = UNSEEN, 우선순위가 최상
+		parent[i] = 0; //부모노드
+	}
+	i = start;
+	if (weighted[i] == UNSEEN)	//방문 안했을때
+	{
+		parent[i] = -1;
+		pq_update(heap, i, 0); //힙 재조정(가중치)
+
+		while (!pq_empty())	//힙에 데이터가 존재할때
+		{
+			print_heap(heap);	//heap출력(index:weighted)
+			i = pq_extract(heap);	//추출 = 나무정점
+			weighted[i] = -weighted[i];	//양수로 바꿔줌
+			printf(" --> %c to %c:%d\n", int2name(start), int2name(i), weighted[i]);
+
+			for (int v = V; v >= 0; v--)
+			{
+				if (a[i][v] > 0) {
+					if (weighted[v] < 0) //UNSEEN or Fringe
+						//가중치가 업데이트 되면
+						if (pq_update(heap, v, -a[i][v] - weighted[i]))
+							parent[v] = i;	//부모는 i이다
+				}
+			}
+		}
+	}
+	printf("\n");
+}
+
+
+
+
 
 int main()
 {
@@ -1182,20 +1265,20 @@ int main()
 
 	//----------------AP searching---------------------
 	//DJ JM
-	//AP_adjlist(GL, V);
 	//AP_adjmatrix(GM, V);
+	//AP_adjlist(GL, V);
 	
 	//--------------for PFS searching-------------------
 	//11 17 AB 4 AC 1 AD 2 AE 3 CD 2 DF 4 EF 4 BF 4
 	//DG 4 GH 3 HI 2 GI 3 GJ 4 IJ 2 JK 1 FJ 2 FK 4
 
 	//printf("\nOriginal graph\n");
-	//print_adjlist(GL, V);
 	//print_adjmatrix(GM, V);
+	//print_adjlist(GL, V);
 
 	//printf("\nVisit order of Minimum Spanning Tree");
-	//PFS_adjlist(GL, V);
 	//PFS_adjmatrix(GM, V);
+	//PFS_adjlist(GL, V);
 	
 	//printf("Parents-Sons\n");
 	//print_tree(parent,V);
@@ -1206,6 +1289,11 @@ int main()
 	//printf("\n\nVisited edge of minimum spanning tree\n");
 	//kruskal(edge, V, E);
 	//printf("\n\nMinimum cost is \'%d'\n",cost);
+
+	//---------------Shortest path adjlist---------------
+	//Shortest_adjmatrix(GM, 5, V);
+	//Shortest_adjlist(GL, 5, V);
+
 
 	fclose(fp);
 
