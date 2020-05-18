@@ -39,7 +39,11 @@ int parent[MAX_NODE] = { 0, };
 int cost = 0;
 
 //dijkstra
+int start = 0;
 int distance[MAX_NODE] = { 0, };
+
+//floyd
+int f_distance[MAX_NODE][MAX_NODE];	//floyd_distance
 
 
 //------------------------Stack-----------------------------
@@ -288,12 +292,12 @@ void input_adjmatrix(int a[][MAX_NODE], int* V, int* E)
 	{
 		for (j = 0; j < *V; j++)
 		{
-			a[i][j] = 0;	//2D array
+			a[i][j] = INFINITE;	//2D array
 		}
 	}
 	for (i = 0; i < *V; i++)
 	{
-		a[i][i] = 1;	//대각행렬
+		a[i][i] = 0;	//대각행렬
 	}
 	printf("Input two node consist of edge & weight\n");
 	for (k = 0; k < *E; k++)
@@ -422,7 +426,6 @@ void input_adjlist(Node* a[], int* V, int* E)
 	}
 	printf("\n\n");
 }
-
 
 void print_adjlist(Node* a[], int V)
 {
@@ -1253,7 +1256,7 @@ void Dijkstra(int a[][MAX_NODE], int start, int V)
 	check[start] = 1;	//start node 방문
 	checked++;	//모두 방문함을 세어줄 카운트
 
-	//print_distance(distance, start, V)
+	//print_distance(distance, start, V) for visual
 	printf("     ");
 	for (int i = 0; i < V; i++)
 	{
@@ -1287,9 +1290,248 @@ void Dijkstra(int a[][MAX_NODE], int start, int V)
 		//print_distance(distance, x, V)
 		Print_dijkstra(distance, x, V);
 	}
-	//print result
-	printf("Result from %c to\n", int2name(start));
+	//print result for visual
+	printf("Result from %c to @\n", int2name(start));
 	Print_dijkstra(distance, start, V);
+}
+
+void Print_dijkstra_parent(int p[],int start, int V)
+{
+	printf("\n--Parent-Sons--\n");
+	//node의 개수만큼 알파벳 순차출력
+	printf("Son:    ");
+	for (int i = 0; i < V; i++)
+		printf("%c ", int2name(i));
+
+	//해당 노드의 부모 노드 출력(첫번째 노드는 .)
+	printf("\nParent: ");
+	for (int i = 0; i < V; i++)
+	{
+		if (i == start)
+			printf(". ");
+		else
+			printf("%c ", int2name(p[i]));
+	}
+	printf("\n");
+}
+
+
+
+//-----------------------directed graph--------------------------
+//----------dirmatrix----------
+void input_dirmatrix(int a[][MAX_NODE], int* V, int* E)
+{
+	char vertex[3];
+	int i, j, k, w;
+	printf("Input number of node & edge\n");
+	fscanf(fp, "%d %d", V, E);
+
+	for (i = 0; i < *V; i++)
+	{
+		for (j = 0; j < *V; j++)
+		{
+			a[i][j] = INFINITE;	//2D array
+		}
+	}
+	for (i = 0; i < *V; i++)
+	{
+		a[i][i] = 0;	//대각행렬
+	}
+	printf("Input two node consist of edge & weight\n");
+	for (k = 0; k < *E; k++)
+	{
+		fscanf(fp, "%s %d", vertex, &w);
+		i = name2int(vertex[0]);
+		j = name2int(vertex[1]);
+		a[i][j] = w;
+	}
+}
+//-----------dirlist-----------
+void input_dirlist(Node* a[], int* V, int* E)
+{
+	Node* t;
+
+	char vertex[3];	//입력받을 문자열 공간
+
+	int i, j, w;	//w= weight
+
+	//노드와 엣지의 개수입력받기
+	printf("\nInput number of node & edge\n");
+	fscanf(fp, "%d %d", V, E);
+
+	//노드 포인터 타입 배열 초기화 (포인터라 NULL로 초기화)
+	for (i = 0; i < *V; i++)
+	{
+		a[i] = NULL;
+	}
+
+	printf("Input two node consist of edge & weight");
+
+	for (int j = 0; j < *E; j++)
+	{
+		fscanf(fp, "%s %d", vertex, &w);	//AB를 입력받고,AC를 입력받고
+		i = name2int(vertex[0]);	//A-> ,A->
+		t = (Node*)malloc(sizeof(Node));	//노드생성
+		t->vertex = name2int(vertex[1]);	//B를 넣어주고, C를넣어주고
+		t->next = a[i];	//B->NULL를 해준다, C->B를해준다
+		a[i] = t;	//A->B, A->C
+		t->weight = w;	//input weight
+	}
+	printf("\n\n");
+}
+
+//---------------------------DFS---------------------------------
+//-----------dirlist-----------
+void DFS_dirlist(Node* a[], int V)
+{
+	printf("\n--DFS_dirlist--\n");
+	int i, j;
+	Node* t;
+	Init_Stack();
+	for (i = 0; i < V; i++)
+	{
+		for (j = 0; j < V; j++)
+			check[j] = 0;
+		Push(i);
+		check[i] = 1;
+		printf("%c:", int2name(i));
+		while (!Stack_Empty())
+		{
+			j = Pop();
+			printf("%3c", int2name(j));
+			for (t = a[j]; t != NULL; t = t->next)
+			{
+				if (check[t->vertex] == 0)
+				{
+					Push(t->vertex);
+					check[t->vertex] = 1;
+				}
+			}
+		}
+		printf("\n");
+	}
+}
+
+//--------------------------floyd--------------------------------
+void Copy_matrix(int a[][MAX_NODE], int b[][MAX_NODE])
+{
+	for (int y = 0; y < MAX_NODE; y++)
+	{
+		for (int x = 0; x < MAX_NODE; x++)
+		{
+			b[y][x] = a[y][x];
+		}
+	}
+}
+
+void Floyd(int a[][MAX_NODE], int V)
+{
+	for (int y = 0; y < V; y++)
+		for (int x = 0; x < V; x++)
+			for (int k = 0; k < V; k++)
+				//x-k 연결보다 x-y-k연결이 짧을경우
+				if (f_distance[x][y] + f_distance[y][k] < f_distance[x][k])
+					//x-k 가중치를 바꿔준다
+					f_distance[x][k] = f_distance[x][y] + f_distance[y][k];
+}
+
+//-----------------------Topological sort------------------------
+typedef struct _topol{
+	int count = 0;
+	struct _topol* next;
+}topol;
+
+topol network[MAX_NODE];
+
+void set_count_indegree(Node* a[], topol net[], int V)
+{
+	printf("\n--set_count_indegree--\n");
+	int i, j;
+	int count;
+	Node* t;
+	for (i = 0; i < V; i++)	//모든노드
+	{
+		count = 0;
+		for (j = 0; j < V; j++)	//A부터
+			for (t = a[j]; t != NULL; t = t->next)	//연결된 노드탐색
+				if (t->vertex == i)	//해당노드가 있으면
+					count++;
+		net[i].count = count;
+	}
+
+	for (int k = 0; k < V; k++)
+	{
+		printf("%d ", net[k].count);
+	}
+
+	printf("\n");
+}
+
+void Set_dirlist(Node* a[], topol net[], int V)
+{
+	printf("\n--set_count_indegree--\n");
+	int i, j;
+	Node* t;
+	Init_Stack();
+	for (i = 0; i < V; i++)
+	{
+		for (j = 0; j < V; j++)
+			check[j] = 0;
+		Push(i);
+		check[i] = 1;
+
+		while (!Stack_Empty())
+		{
+			j = Pop();
+			net[j].count++;
+
+			for (t = a[j]; t != NULL; t = t->next)
+			{
+				if (check[t->vertex] == 0)
+				{
+					Push(t->vertex);
+					check[t->vertex] = 1;
+				}
+			}
+		}
+	}
+
+	for (int k = 0; k < V; k++)
+	{
+		net[k].count--;
+		printf(" %c:%d ", int2name(k),net[k].count);
+	}
+	printf("\n");
+}
+
+int Top_sort(Node* a[], topol net[], int V)
+{
+	int i, j, k;
+	Node* ptr;
+	Init_Stack();
+	set_count_indegree(a,net, V);
+	printf("\n--Topol_sort--\n");
+	for (i = 0; i < V; i++)
+		if (!net[i].count)
+			Push(i);
+	for (i = 0; i < V; i++)
+	{
+		if (Stack_Empty())
+			return -1;
+		else
+		{
+			j = Pop();
+			printf("%3c ", int2name(j));
+			for (ptr = a[j]; ptr != NULL; ptr = ptr->next)
+			{
+				k = ptr->vertex;
+				net[k].count--;
+				if (!net[k].count)
+					Push(k);
+			}
+		}
+	}
+	printf("\n");
 }
 
 
@@ -1358,11 +1600,30 @@ int main()
 	//printf("\n\nMinimum cost is \'%d'\n",cost);
 
 	//---------------Shortest path adjlist---------------
-	//Shortest_adjmatrix(GM, 5, V);
-	//Shortest_adjlist(GL, 5, V);
+	//start = 5;
+	//Shortest_adjmatrix(GM, start, V);
+	//Shortest_adjlist(GL, start, V);
 
 	//----------------dijkstra algorithm------------------
 	//Dijkstra(GM, 5, V);
+	//Print_dijkstra_parent(parent, start, V);
+
+	//------------------------directed graph--------------
+	//input_dirmatrix(GM, &V, &E);
+	//print_adjmatrix(GM, V);
+
+	//-----------------Floyd-----------------------------
+	//Copy_matrix(GM, f_distance);
+	//Floyd(f_distance, V);
+	//print_adjmatrix(f_distance, V);
+
+	//------------------topoligical sort------------------
+	input_dirlist(GL, &V, &E);
+	print_adjlist(GL, V);
+
+	DFS_dirlist(GL, V);
+
+	Top_sort(GL, network, V);
 
 	fclose(fp);
 
