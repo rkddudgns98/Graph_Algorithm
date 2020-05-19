@@ -45,6 +45,10 @@ int distance[MAX_NODE] = { 0, };
 //floyd
 int f_distance[MAX_NODE][MAX_NODE];	//floyd_distance
 
+//Strongly connected
+int SCcheck[MAX_NODE] = { 0, };	//방문순서, Spannig tree
+int SCorder = 0;	//순서
+
 
 //------------------------Stack-----------------------------
 int stack[MAX_NODE] = { 0, };
@@ -1394,7 +1398,7 @@ void DFS_dirlist(Node* a[], int V)
 			check[j] = 0;
 		Push(i);
 		check[i] = 1;
-		printf("%c:", int2name(i));
+		printf("%3c:", int2name(i));
 		while (!Stack_Empty())
 		{
 			j = Pop();
@@ -1454,84 +1458,154 @@ void set_count_indegree(Node* a[], topol net[], int V)
 		count = 0;
 		for (j = 0; j < V; j++)	//A부터
 			for (t = a[j]; t != NULL; t = t->next)	//연결된 노드탐색
-				if (t->vertex == i)	//해당노드가 있으면
-					count++;
+				if (t->vertex == i)	//선행작업이 있으면
+					count++;	//내차수 증가
 		net[i].count = count;
 	}
 
-	for (int k = 0; k < V; k++)
+	for (int k = 0; k < V; k++)	//내차수를 출력해 확인
 	{
-		printf("%d ", net[k].count);
+		printf(" %c:%d ", int2name(k), net[k].count);
 	}
 
 	printf("\n");
 }
 
-void Set_dirlist(Node* a[], topol net[], int V)
-{
-	printf("\n--set_count_indegree--\n");
-	int i, j;
-	Node* t;
-	Init_Stack();
-	for (i = 0; i < V; i++)
-	{
-		for (j = 0; j < V; j++)
-			check[j] = 0;
-		Push(i);
-		check[i] = 1;
-
-		while (!Stack_Empty())
-		{
-			j = Pop();
-			net[j].count++;
-
-			for (t = a[j]; t != NULL; t = t->next)
-			{
-				if (check[t->vertex] == 0)
-				{
-					Push(t->vertex);
-					check[t->vertex] = 1;
-				}
-			}
-		}
-	}
-
-	for (int k = 0; k < V; k++)
-	{
-		net[k].count--;
-		printf(" %c:%d ", int2name(k),net[k].count);
-	}
-	printf("\n");
-}
-
-int Top_sort(Node* a[], topol net[], int V)
+int Topol_sort(Node* a[], topol net[], int V)
 {
 	int i, j, k;
 	Node* ptr;
 	Init_Stack();
-	set_count_indegree(a,net, V);
+	set_count_indegree(a,net, V);	//내차수 계산
 	printf("\n--Topol_sort--\n");
+
 	for (i = 0; i < V; i++)
-		if (!net[i].count)
-			Push(i);
+		if (!net[i].count)	//내차수가 0이면
+			Push(i);	//Push (선행작업을 모두함)
 	for (i = 0; i < V; i++)
 	{
 		if (Stack_Empty())
-			return -1;
+			return -1;	//끝
 		else
 		{
-			j = Pop();
+			j = Pop();	//해야할 작업순서
 			printf("%3c ", int2name(j));
 			for (ptr = a[j]; ptr != NULL; ptr = ptr->next)
 			{
-				k = ptr->vertex;
-				net[k].count--;
+				k = ptr->vertex;	//선행작업의 다음작업에 대해
+				net[k].count--;	//내차수 -1
 				if (!net[k].count)
-					Push(k);
+					Push(k);	//선행작업이 모두끝났다면
 			}
 		}
 	}
 	printf("\n");
+}
+
+void set_count_outdegree(Node* a[], topol net[], int V)
+{
+	printf("\n--set_count_outdegree--\n");
+	int i, j;
+	int count;
+	Node* t;
+	for (i = 0; i < V; i++)	//모든노드
+	{
+		count = 0;
+		for (t = a[i]; t != NULL; t = t->next)	//연결된 노드탐색
+			count++;	//외차수 증가
+		net[i].count = count;
+	}
+
+	for (int k = 0; k < V; k++)	//외차수를 출력해 확인
+	{
+		printf(" %c:%d ", int2name(k), net[k].count);
+	}
+
+	printf("\n");
+}
+
+int rev_Topol_sort(Node* a[], topol net[], int V)
+{
+	int i, j, k;
+	Node* ptr;
+	Init_Stack();
+	set_count_outdegree(a, net, V);	//내차수 계산
+	printf("\n--rev_Topol_sort--\n");
+
+	for (i = 0; i < V; i++)
+		if (!net[i].count)	//내차수가 0이면
+			Push(i);	//Push (선행작업을 모두함)
+	for (i = 0; i < V; i++)
+	{
+		if (Stack_Empty())
+			return -1;	//끝
+		else
+		{
+			j = Pop();	//해야할 작업순서
+			printf("%3c ", int2name(j));
+			for (k = 0; k < V; k++) {
+				for (ptr = a[k]; ptr != NULL; ptr = ptr->next)
+				{
+					if (ptr->vertex == j) 
+					{
+						net[k].count--;	//외차수 -1
+						if (!net[k].count)
+							Push(k);	//선행작업이 모두끝났다면
+					}
+				}
+			}
+		}
+	}
+	printf("\n");
+}
+
+
+//-----------------Strongly connected component------------------
+int Strong_recur(Node* g[], int i)
+{
+	int m, min, k, flag;	//min == 연결되어있는 최상위노드
+	Node* t;
+	SCcheck[i] = min = ++SCorder;
+	Push(i); //i 노드 Push
+
+	for (t = g[i]; t != NULL; t = t->next)	//i노드와 연결된 노드 탐색
+	{
+		if (SCcheck[t->vertex] == 0)	//방문안했다면
+			m = Strong_recur(g, t->vertex);	//재귀함수실행
+		else	//방문했다면
+			m = SCcheck[t->vertex];		//해당노드의 순번	
+		if (m < min)	//상위노드가 있다면
+			min = m;	//변경
+	}
+	if (min == SCcheck[i])	//하위노드와 비간선연결로 연결되어있다면
+	{
+		flag = 0;
+		while ((k = Pop()) != i)	//i노드부터 하위노드까지
+		{
+			printf("%3c", int2name(k));	//화면에 출력
+			SCcheck[k] = MAX_NODE + 1;
+			flag = 1;
+		}
+		if (flag)
+			printf("%3c\n", int2name(k));
+	}
+	return min;
+}
+
+void Strong_Connected(Node* a[], int V)
+{
+	printf("\n--Strong_Connected--\n");
+	int y;
+	SCorder = 0;
+	for (y = 0; y < V; y++)
+	{
+		SCcheck[y] = 0;
+	}
+	for (y = 0; y < V; y++)
+	{
+		if (SCcheck[y] == 0)	//방문안했을때
+			Strong_recur(a, y);	//Strong_recur함수실행
+	}
 }
 
 
@@ -1559,6 +1633,7 @@ int main()
 	//--------adjlist---------
 	//DFS_adjlist(GL, V);
 	//nrDFS_adjlist(GL, V);
+
 
 	//------------------------BFS-----------------------
 	//--------adjmatirx-------
@@ -1608,22 +1683,29 @@ int main()
 	//Dijkstra(GM, 5, V);
 	//Print_dijkstra_parent(parent, start, V);
 
-	//------------------------directed graph--------------
+	//-------------------directed graph-------------------
+	//-------matrix-------
 	//input_dirmatrix(GM, &V, &E);
 	//print_adjmatrix(GM, V);
+	//--------list--------
+	input_dirlist(GL, &V, &E);
+	print_adjlist(GL, V);
 
-	//-----------------Floyd-----------------------------
+	//------------DFS_dirlist--------------
+	//DFS_dirlist(GL, V);
+
+	//-------------------------Floyd----------------------
 	//Copy_matrix(GM, f_distance);
 	//Floyd(f_distance, V);
 	//print_adjmatrix(f_distance, V);
 
 	//------------------topoligical sort------------------
-	input_dirlist(GL, &V, &E);
-	print_adjlist(GL, V);
+	//Topol_sort(GL, network, V);
+	//rev_Topol_sort(GL, network, V);
 
-	DFS_dirlist(GL, V);
+	//----------------Strongly connected------------------
+	Strong_Connected(GL, V);
 
-	Top_sort(GL, network, V);
 
 	fclose(fp);
 
