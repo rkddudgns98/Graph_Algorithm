@@ -1440,24 +1440,71 @@ void Floyd(int a[][MAX_NODE], int V)
 }
 
 //-----------------------Topological sort------------------------
-typedef struct _topol{
+typedef struct _topol
+{
+	int vertex;
 	int count = 0;
 	struct _topol* next;
 }topol;
 
 topol network[MAX_NODE];
 
-void set_count_indegree(Node* a[], topol net[], int V)
+void Set_Network(Node* a[], topol net[], int V)
+{
+	Node* t;
+	topol* k, * c;
+
+	int i, j;
+
+	for (i = 0; i < V; i++)
+	{
+		net[i].vertex = i;
+	}
+
+	for (i = 0; i < V; i++)
+	{
+		net[i].next = NULL;
+	}
+
+	for (int i = 0; i < V; i++)
+	{
+		for (t = a[i]; t != NULL; t = t->next)
+		{
+			k = (topol*)malloc(sizeof(topol));	//네트워크생성
+			k->count = 0;
+			k->vertex = t->vertex;
+			k->next = net[i].next;
+			net[i].next = k;
+		}
+	}
+}
+
+void Print_Network(topol net[], int V)
+{
+	printf("\n--Print_network--\n");
+	topol* c;
+
+	for (int i = 0; i < V; i++)
+	{
+		for (c = &net[i]; c != NULL; c = c->next)
+		{
+			printf(" -> %c:%d ", int2name(c->vertex), c->count);
+		}
+		printf("\n");
+	}
+}
+
+void set_count_indegree(topol net[], int V)
 {
 	printf("\n--set_count_indegree--\n");
 	int i, j;
 	int count;
-	Node* t;
+	topol* t;
 	for (i = 0; i < V; i++)	//모든노드
 	{
 		count = 0;
 		for (j = 0; j < V; j++)	//A부터
-			for (t = a[j]; t != NULL; t = t->next)	//연결된 노드탐색
+			for (t = net[j].next; t != NULL; t = t->next)	//연결된 노드탐색
 				if (t->vertex == i)	//선행작업이 있으면
 					count++;	//내차수 증가
 		net[i].count = count;
@@ -1471,12 +1518,12 @@ void set_count_indegree(Node* a[], topol net[], int V)
 	printf("\n");
 }
 
-int Topol_sort(Node* a[], topol net[], int V)
+int Topol_sort(topol net[], int V)
 {
 	int i, j, k;
-	Node* ptr;
+	topol* ptr;
 	Init_Stack();
-	set_count_indegree(a,net, V);	//내차수 계산
+	set_count_indegree(net, V);	//내차수 계산
 	printf("\n--Topol_sort--\n");
 
 	for (i = 0; i < V; i++)
@@ -1490,7 +1537,7 @@ int Topol_sort(Node* a[], topol net[], int V)
 		{
 			j = Pop();	//해야할 작업순서
 			printf("%3c ", int2name(j));
-			for (ptr = a[j]; ptr != NULL; ptr = ptr->next)
+			for (ptr = net[j].next; ptr != NULL; ptr = ptr->next)
 			{
 				k = ptr->vertex;	//선행작업의 다음작업에 대해
 				net[k].count--;	//내차수 -1
@@ -1499,19 +1546,20 @@ int Topol_sort(Node* a[], topol net[], int V)
 			}
 		}
 	}
+	return 1;
 	printf("\n");
 }
 
-void set_count_outdegree(Node* a[], topol net[], int V)
+void set_count_outdegree(topol net[], int V)
 {
 	printf("\n--set_count_outdegree--\n");
 	int i, j;
 	int count;
-	Node* t;
+	topol* t;
 	for (i = 0; i < V; i++)	//모든노드
 	{
 		count = 0;
-		for (t = a[i]; t != NULL; t = t->next)	//연결된 노드탐색
+		for (t = net[i].next; t != NULL; t = t->next)	//연결된 노드탐색
 			count++;	//외차수 증가
 		net[i].count = count;
 	}
@@ -1524,12 +1572,12 @@ void set_count_outdegree(Node* a[], topol net[], int V)
 	printf("\n");
 }
 
-int rev_Topol_sort(Node* a[], topol net[], int V)
+int rev_Topol_sort(topol net[], int V)
 {
 	int i, j, k;
-	Node* ptr;
+	topol* ptr;
 	Init_Stack();
-	set_count_outdegree(a, net, V);	//내차수 계산
+	set_count_outdegree(net, V);	//내차수 계산
 	printf("\n--rev_Topol_sort--\n");
 
 	for (i = 0; i < V; i++)
@@ -1544,9 +1592,9 @@ int rev_Topol_sort(Node* a[], topol net[], int V)
 			j = Pop();	//해야할 작업순서
 			printf("%3c ", int2name(j));
 			for (k = 0; k < V; k++) {
-				for (ptr = a[k]; ptr != NULL; ptr = ptr->next)
+				for (ptr = net[k].next; ptr != NULL; ptr = ptr->next)
 				{
-					if (ptr->vertex == j) 
+					if (ptr->vertex == j)
 					{
 						net[k].count--;	//외차수 -1
 						if (!net[k].count)
@@ -1700,8 +1748,10 @@ int main()
 	//print_adjmatrix(f_distance, V);
 
 	//------------------topoligical sort------------------
-	//Topol_sort(GL, network, V);
-	//rev_Topol_sort(GL, network, V);
+	//Set_Network(GL, network, V);
+	//Print_Network(network, V);
+	//Topol_sort(network, V);
+	//rev_Topol_sort(network, V);
 
 	//----------------Strongly connected------------------
 	Strong_Connected(GL, V);
