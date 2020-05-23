@@ -49,6 +49,10 @@ int f_distance[MAX_NODE][MAX_NODE];	//floyd_distance
 int SCcheck[MAX_NODE] = { 0, };	//방문순서, Spannig tree
 int SCorder = 0;	//순서
 
+//AOE
+int earliest[MAX_NODE];
+int latest[MAX_NODE];
+
 
 //------------------------Stack-----------------------------
 int stack[MAX_NODE] = { 0, };
@@ -1442,53 +1446,31 @@ void Floyd(int a[][MAX_NODE], int V)
 //-----------------------Topological sort------------------------
 typedef struct _topol
 {
-	int vertex;
 	int count = 0;
-	struct _topol* next;
+	Node* next;
 }topol;
 
 topol network[MAX_NODE];
 
-void Set_Network(Node* a[], topol net[], int V)
+void Set_Network(Node* a[],topol net[],int V)
 {
-	Node* t;
-	topol* k, * c;
-
-	int i, j;
-
-	for (i = 0; i < V; i++)
-	{
-		net[i].vertex = i;
-	}
-
-	for (i = 0; i < V; i++)
-	{
-		net[i].next = NULL;
-	}
-
 	for (int i = 0; i < V; i++)
 	{
-		for (t = a[i]; t != NULL; t = t->next)
-		{
-			k = (topol*)malloc(sizeof(topol));	//네트워크생성
-			k->count = 0;
-			k->vertex = t->vertex;
-			k->next = net[i].next;
-			net[i].next = k;
-		}
+		net[i].next = a[i];
 	}
 }
 
 void Print_Network(topol net[], int V)
 {
 	printf("\n--Print_network--\n");
-	topol* c;
+	Node* c;
 
 	for (int i = 0; i < V; i++)
 	{
-		for (c = &net[i]; c != NULL; c = c->next)
+		printf("%3c", int2name(i));
+		for (c = net[i].next; c != NULL; c = c->next)
 		{
-			printf(" -> %c:%d ", int2name(c->vertex), c->count);
+			printf(" -> %c:%d ", int2name(c->vertex), c->weight);
 		}
 		printf("\n");
 	}
@@ -1499,7 +1481,7 @@ void set_count_indegree(topol net[], int V)
 	printf("\n--set_count_indegree--\n");
 	int i, j;
 	int count;
-	topol* t;
+	Node* t;
 	for (i = 0; i < V; i++)	//모든노드
 	{
 		count = 0;
@@ -1521,7 +1503,7 @@ void set_count_indegree(topol net[], int V)
 int Topol_sort(topol net[], int V)
 {
 	int i, j, k;
-	topol* ptr;
+	Node* ptr;
 	Init_Stack();
 	set_count_indegree(net, V);	//내차수 계산
 	printf("\n--Topol_sort--\n");
@@ -1555,7 +1537,7 @@ void set_count_outdegree(topol net[], int V)
 	printf("\n--set_count_outdegree--\n");
 	int i, j;
 	int count;
-	topol* t;
+	Node* t;
 	for (i = 0; i < V; i++)	//모든노드
 	{
 		count = 0;
@@ -1575,7 +1557,7 @@ void set_count_outdegree(topol net[], int V)
 int rev_Topol_sort(topol net[], int V)
 {
 	int i, j, k;
-	topol* ptr;
+	Node* ptr;
 	Init_Stack();
 	set_count_outdegree(net, V);	//내차수 계산
 	printf("\n--rev_Topol_sort--\n");
@@ -1655,6 +1637,91 @@ void Strong_Connected(Node* a[], int V)
 			Strong_recur(a, y);	//Strong_recur함수실행
 	}
 }
+
+//-------------------------AOE Network---------------------------
+void forward_state(topol net[], int V)
+{
+	int i, j, k;
+	Node* ptr;
+	Init_Stack();
+	set_count_indegree(net, V);
+	for (i = 0; i < V; i++)
+		earliest[i] = 0;
+	for (i = 0; i < V; i++)
+		if (!net[i].count)
+			Push(i);
+	for (i = 0; i < V; i++)
+	{
+		if (!Stack_Empty())
+		{
+			j = Pop();
+			for (ptr = net[j].next; ptr != NULL; ptr = ptr->next)
+			{
+				k = ptr->vertex;
+				net[k].count--;
+				if (!net[k].count)
+					Push(k);
+				if (earliest[k] < earliest[j] + ptr->weight)
+					earliest[k] = earliest[j] + ptr->weight;
+			}
+		}
+	}
+}
+void backward_state(topol net[], int V)
+{
+	int i, j, k, l;
+	Node* ptr;
+	Init_Stack();
+	set_count_outdegree(net, V);
+	for (i = 0; i < V; i++)
+		latest[i] = earliest[V - 1];
+	for (i = 0; i < V; i++)
+		if (!net[i].count)
+			Push(i);
+	for (i = 0; i < V; i++)
+	{
+		if (!Stack_Empty())
+		{
+			j = Pop();
+			for (l = 0; l < V; l++)
+			{
+				for (ptr = net[l].next; ptr != NULL; ptr = ptr->next)
+				{
+					if (ptr->vertex == j)
+					{
+						k = l;
+						net[k].count--;
+						if (!net[k].count)
+							Push(k);
+						//
+						if (latest[k] > latest[j] - ptr->weight)
+							latest[k] = latest[j] - ptr->weight;
+					}
+				}
+			}
+		}
+	}
+}
+void Print_Critical_Activity(topol net[], int V)
+{
+	printf("\n--Print_Critical_Activity--\n");
+	printf("<Edge>	Early	Late	L-E	Critical\n");
+	Node* ptr;
+	for (int i = 0; i < V; i++)
+	{
+		for (ptr = net[i].next; ptr != NULL; ptr = ptr->next)
+		{
+			printf("<%c,%c>	%3d	%3d	%3d",
+				int2name(i), int2name(ptr->vertex), earliest[i], latest[i], latest[i] - earliest[i]);
+			if (latest[i] - earliest[i] == 0)
+				printf("	  Y\n");
+			else
+				printf("	  N\n");
+		}
+	}
+}
+
+
 
 
 int main()
@@ -1748,14 +1815,19 @@ int main()
 	//print_adjmatrix(f_distance, V);
 
 	//------------------topoligical sort------------------
-	//Set_Network(GL, network, V);
-	//Print_Network(network, V);
+	Set_Network(GL, network, V);
+	Print_Network(network, V);
 	//Topol_sort(network, V);
 	//rev_Topol_sort(network, V);
 
 	//----------------Strongly connected------------------
-	Strong_Connected(GL, V);
+	//Strong_Connected(GL, V);
 
+
+	//---------------------AOE Network--------------------
+	forward_state(network, V);
+	backward_state(network, V);
+	Print_Critical_Activity(network, V);
 
 	fclose(fp);
 
