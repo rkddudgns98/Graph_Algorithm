@@ -8,6 +8,8 @@
 #define UNION 1
 #define UNSEEN (-INT_MAX)
 #define INFINITE 1000
+#define SOURCE 'S'
+#define SINK 'T'
 
 int name2int(char c)
 {
@@ -16,6 +18,22 @@ int name2int(char c)
 char int2name(int i)
 {
 	return i + 'A';
+}
+int FFname2int(char c)
+{
+	if (c == SOURCE)
+		return 0;
+	if (c == SINK)
+		return 1;
+	return c - 'A' + 2;
+}
+int FFint2name(int i)
+{
+	if (i == 0)
+		return SOURCE;
+	if (i == 1)
+		return SINK;
+	return i + 'A' - 2;
 }
 
 //file
@@ -53,6 +71,11 @@ int SCorder = 0;	//순서
 int earliest[MAX_NODE];
 int latest[MAX_NODE];
 
+//FF
+int capacity[MAX_NODE][MAX_NODE];// for capacity
+int flow[MAX_NODE][MAX_NODE]; // for flow 
+int residual[MAX_NODE][MAX_NODE]; // for residual network
+int path[MAX_NODE]; // for augmenting path
 
 //------------------------Stack-----------------------------
 int stack[MAX_NODE] = { 0, };
@@ -1661,12 +1684,14 @@ void forward_state(topol net[], int V)
 				net[k].count--;
 				if (!net[k].count)
 					Push(k);
+				//earliest값이 변화가있다면
 				if (earliest[k] < earliest[j] + ptr->weight)
 					earliest[k] = earliest[j] + ptr->weight;
 			}
 		}
 	}
 }
+
 void backward_state(topol net[], int V)
 {
 	int i, j, k, l;
@@ -1693,7 +1718,7 @@ void backward_state(topol net[], int V)
 						net[k].count--;
 						if (!net[k].count)
 							Push(k);
-						//
+						//latest값이 변화가있다면
 						if (latest[k] > latest[j] - ptr->weight)
 							latest[k] = latest[j] - ptr->weight;
 					}
@@ -1702,6 +1727,7 @@ void backward_state(topol net[], int V)
 		}
 	}
 }
+
 void Print_Critical_Activity(topol net[], int V)
 {
 	printf("\n--Print_Critical_Activity--\n");
@@ -1721,6 +1747,155 @@ void Print_Critical_Activity(topol net[], int V)
 	}
 }
 
+
+//--------------------Network Flow--------------------
+void input_FFmatrix(int a[][MAX_NODE], int* V, int* E)
+{
+	char vertex[3];
+	int i, j, k, w;
+	printf("Input number of node & edge\n");
+	fscanf(fp, "%d %d", V, E);
+
+	for (i = 0; i < *V; i++)
+	{
+		for (j = 0; j < *V; j++)
+		{
+			a[i][j] = 0;	//2D array
+		}
+	}
+	printf("Input two node consist of edge & capacity\n");
+	for (k = 0; k < *E; k++)
+	{
+		fscanf(fp, "%s %d", vertex, &w);
+		i = FFname2int(vertex[0]);
+		j = FFname2int(vertex[1]);
+		a[i][j] = w;
+	}
+}
+
+void print_FFmatrix(int a[][MAX_NODE], int V)
+{
+	printf("\n--Print_FFmatrix--\n");
+	printf("   ");
+	for (int i = 0; i < V; i++)
+	{
+		printf("%5c", FFint2name(i));	//첫줄(S,T,A,B,C,D ...)
+	}
+
+	printf("\n");
+
+	for (int i = 0; i < V; i++)
+	{
+		printf("%5c", FFint2name(i));	//첫칸(S,T,A,B,C,D ...)
+		for (int j = 0; j < V; j++)
+		{
+			printf("%5d", a[i][j]);//matrix출력
+		}
+		printf("\n");
+	}
+	printf("\n");
+}
+
+void Clear_matrix(int a[][MAX_NODE], int V)
+{
+	for (int i = 0; i < V; i++)
+	{
+		for (int j = 0; j < V; j++)
+			a[i][j] = 0;
+	}
+}
+
+void construct_residual(int c[][MAX_NODE], int f[][MAX_NODE], int r[][MAX_NODE], int V)
+{
+	int i, j;
+	for (i = 0; i < V; i++)
+		for (j = 0; j < V; j++)
+			r[i][j] = c[i][j] - f[i][j];
+}
+
+void set_path()
+{ 
+	int* temp;
+	int i, count = 0; 
+	temp = (int*)calloc(MAX_NODE, sizeof(int)); 
+	i = FFname2int(SINK);
+
+	while (i >= 0)
+	{ 
+		temp[count] = i;	//temp는 역순
+		i = parent[i];
+		count++; 
+	} 
+
+	for (i = 0; i < count; i++)
+		path[i] = temp[count - i - 1];	//path는 정순
+
+	path[i] = -1; 
+	free(temp); 
+}
+
+int get_augment_path(int a[][MAX_NODE], int V, int S, int T) //BFS기반
+{
+	int i, j;
+	Init_Queue();
+	for (i = 0; i < V; i++)
+	{
+		check[i] = 0;
+		parent[i] = -1;
+	}
+	i = FFname2int(S); //source부터 시작
+	if (check[i] == 0)
+	{
+		Put(i);	//i방문
+		check[i] = 1;	//방문체크
+		while (!Queue_Empty())
+		{
+			i = Get();
+			if (i == FFname2int(T))	//sink이면 끝
+				break;
+			for (j = 0; j < V; j++)
+			{
+				if (a[i][j] != 0)
+				{
+					if (check[j] == 0)
+					{
+						Put(j);
+						check[j] = 1;
+						parent[j] = i; //j의 부모는 i이다
+					}
+				}
+			}
+		}
+	}
+	set_path();	//역순
+
+	if (i == FFname2int(T))
+		return 1;	//path가 있을때
+	else
+		return 0;	//path가 없을때
+}
+
+void network_flow(int c[][MAX_NODE], int f[][MAX_NODE], int r[][MAX_NODE], int V, int S, int T)
+{
+	int i, min;
+	Clear_matrix(f, V);
+	Clear_matrix(r, V);
+	construct_residual(c, f, r, V);	//첫 residual은 capacity와 같음
+	while (get_augment_path(r, V, S, T))
+	{
+		min = INT_MAX;
+		for (i = 1; path[i] >= 0; i++)
+			if (min > r[path[i - 1]][path[i]])	//경로에서 min값을 찾는다
+				min = r[path[i - 1]][path[i]];
+		for (i = 1; path[i] >= 0; i++)
+		{	//flow matrix의 해당경로에 min값을 더해줌
+			f[path[i - 1]][path[i]] = f[path[i - 1]][path[i]] + min;	
+			//symetric
+			f[path[i]][path[i - 1]] = -f[path[i - 1]][path[i]];
+		}
+		construct_residual(c, f, r, V);	//구성된 flow로 다시 residual구성
+	}
+}
 
 
 
@@ -1803,8 +1978,8 @@ int main()
 	//input_dirmatrix(GM, &V, &E);
 	//print_adjmatrix(GM, V);
 	//--------list--------
-	input_dirlist(GL, &V, &E);
-	print_adjlist(GL, V);
+	//input_dirlist(GL, &V, &E);
+	//print_adjlist(GL, V);
 
 	//------------DFS_dirlist--------------
 	//DFS_dirlist(GL, V);
@@ -1815,8 +1990,8 @@ int main()
 	//print_adjmatrix(f_distance, V);
 
 	//------------------topoligical sort------------------
-	Set_Network(GL, network, V);
-	Print_Network(network, V);
+	//Set_Network(GL, network, V);
+	//Print_Network(network, V);
 	//Topol_sort(network, V);
 	//rev_Topol_sort(network, V);
 
@@ -1825,9 +2000,16 @@ int main()
 
 
 	//---------------------AOE Network--------------------
-	forward_state(network, V);
-	backward_state(network, V);
-	Print_Critical_Activity(network, V);
+	//forward_state(network, V);
+	//backward_state(network, V);
+	//Print_Critical_Activity(network, V);
+
+	//--------------------Network Flow--------------------
+	input_FFmatrix(capacity, &V, &E);
+	network_flow(capacity, flow, residual, V, SOURCE, SINK);
+	print_FFmatrix(capacity, V);
+	print_FFmatrix(residual, V);
+	print_FFmatrix(flow, V);
 
 	fclose(fp);
 
